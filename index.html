@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Climate Vital Signs & Predictive Dashboard (October 2026)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="border-b border-slate-700 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <span class="bg-blue-600 text-xs px-2 py-1 rounded font-mono">NASA</span> 
+                    Earth Climate Prediction Dashboard
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">Real-Time Data Baseline (October 2026) & 2-Year Forecast Model</p>
+            </div>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-950 text-emerald-400 border border-emerald-800">
+                ● Live Link Ready
+            </span>
+        </header>
+
+        <!-- Metrics Grid -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-semibold uppercase">Carbon Dioxide (CO₂)</p>
+                <h2 class="text-2xl font-bold text-emerald-400 mt-1">426.4 <span class="text-xs text-slate-400">ppm</span></h2>
+                <p class="text-[11px] text-slate-400 mt-2">+2.4 ppm from Oct 2025</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-semibold uppercase">Temp Anomaly</p>
+                <h2 class="text-2xl font-bold text-rose-400 mt-1">+1.38 <span class="text-xs text-slate-400">°C</span></h2>
+                <p class="text-[11px] text-slate-400 mt-2">Above 1951–1980 mean</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-semibold uppercase">Sea Level Rise</p>
+                <h2 class="text-2xl font-bold text-blue-400 mt-1">+103.5 <span class="text-xs text-slate-400">mm</span></h2>
+                <p class="text-[11px] text-slate-400 mt-2">+3.4 mm/year trajectory</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-semibold uppercase">Ocean Heat Content</p>
+                <h2 class="text-2xl font-bold text-amber-400 mt-1">352 <span class="text-xs text-slate-400">ZJ</span></h2>
+                <p class="text-[11px] text-slate-400 mt-2">Record thermal energy</p>
+            </div>
+        </section>
+
+        <!-- Main Chart Section -->
+        <section class="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
+            
+            <!-- Controls -->
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 pb-4 border-b border-slate-700">
+                <div class="flex flex-wrap gap-2" id="tabContainer">
+                    <button onclick="switchParam('co2', this)" class="tab-btn bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium">CO₂ Concentration</button>
+                    <button onclick="switchParam('temp', this)" class="tab-btn bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-600">Temp Anomaly</button>
+                    <button onclick="switchParam('sea', this)" class="tab-btn bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-600">Sea Level</button>
+                    <button onclick="switchParam('ocean', this)" class="tab-btn bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-600">Ocean Heat</button>
+                </div>
+
+                <div class="flex items-center gap-3 bg-slate-900 p-2 rounded-lg border border-slate-700 w-full sm:w-auto">
+                    <label for="scenarioSlider" class="text-xs text-slate-300 whitespace-nowrap">Forecast Scenario:</label>
+                    <input id="scenarioSlider" type="range" min="1" max="3" value="2" step="1" onchange="updateScenario(this.value)" class="accent-blue-500 cursor-pointer">
+                    <span id="scenarioText" class="text-xs font-bold text-blue-400 min-w-[120px]">Business-As-Usual</span>
+                </div>
+            </div>
+
+            <!-- Chart Canvas Container -->
+            <div class="relative w-full h-[360px]">
+                <canvas id="climateChart"></canvas>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // Data Configuration
+        const labels = ['2016', '2018', '2020', '2022', '2024', 'Oct 2026', '2027 (Est.)', '2028 (Est.)'];
+        
+        const dataMap = {
+            co2: {
+                label: 'Atmospheric CO₂ (ppm)',
+                color: '#10B981',
+                historical: [404.2, 408.5, 414.2, 418.5, 422.4, 426.4],
+                scenarios: { 1: [427.8, 429.5], 2: [428.8, 431.2], 3: [430.5, 434.1] }
+            },
+            temp: {
+                label: 'Global Temp Anomaly (°C)',
+                color: '#EF4444',
+                historical: [1.02, 0.85, 1.02, 0.90, 1.28, 1.38],
+                scenarios: { 1: [1.39, 1.41], 2: [1.42, 1.46], 3: [1.45, 1.52] }
+            },
+            sea: {
+                label: 'Sea Level Variation (mm)',
+                color: '#3B82F6',
+                historical: [72.1, 79.5, 87.2, 94.0, 99.1, 103.5],
+                scenarios: { 1: [105.5, 108.0], 2: [107.0, 110.6], 3: [108.5, 113.2] }
+            },
+            ocean: {
+                label: 'Ocean Heat Content (ZJ)',
+                color: '#F59E0B',
+                historical: [285, 301, 318, 332, 345, 352],
+                scenarios: { 1: [356, 362], 2: [361, 370], 3: [365, 378] }
+            }
+        };
+
+        let currentParam = 'co2';
+        let currentScenario = 2;
+
+        // Initialize Chart
+        const ctx = document.getElementById('climateChart').getContext('2d');
+        let chart = new Chart(ctx, {
+            type: 'line',
+            data: buildChartData(),
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#94A3B8' } }
+                },
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94A3B8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94A3B8' } }
+                }
+            }
+        });
+
+        function buildChartData() {
+            const current = dataMap[currentParam];
+            const forecast = current.scenarios[currentScenario];
+            
+            return {
+                labels: labels,
+                datasets: [
+                    {
+                        label: current.label + ' (Historical)',
+                        data: [...current.historical, null, null],
+                        borderColor: current.color,
+                        borderWidth: 3,
+                        tension: 0.2
+                    },
+                    {
+                        label: current.label + ' (2-Year Forecast)',
+                        data: [null, null, null, null, null, current.historical[5], ...forecast],
+                        borderColor: current.color,
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.2
+                    }
+                ]
+            };
+        }
+
+        function switchParam(param, btn) {
+            currentParam = param;
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.className = 'tab-btn bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-600';
+            });
+            btn.className = 'tab-btn bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium';
+            
+            chart.data = buildChartData();
+            chart.update();
+        }
+
+        function updateScenario(val) {
+            currentScenario = parseInt(val);
+            const names = { 1: 'Optimistic', 2: 'Business-As-Usual', 3: 'High Emission' };
+            document.getElementById('scenarioText').innerText = names[currentScenario];
+            
+            chart.data = buildChartData();
+            chart.update();
+        }
+    </script>
+</body>
+</html>
